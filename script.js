@@ -47,6 +47,7 @@ function addQuote() {
     if (newQuoteText && newQuoteCategory) {
         quotes.push({ text: newQuoteText, category: newQuoteCategory });
         saveQuotes(); // Save quotes to local storage
+        syncWithServer(); // Sync with server
         document.getElementById('newQuoteText').value = '';
         document.getElementById('newQuoteCategory').value = '';
         alert('Quote added successfully!');
@@ -124,10 +125,30 @@ function importFromJsonFile(event) {
         const importedQuotes = JSON.parse(event.target.result);
         quotes.push(...importedQuotes);
         saveQuotes();
+        syncWithServer(); // Sync with server
         populateCategoryFilter();
         alert('Quotes imported successfully!');
     };
     fileReader.readAsText(event.target.files[0]);
+}
+
+// Function to sync local quotes with the server
+function syncWithServer() {
+    // Fetch quotes from server
+    fetch('https://jsonplaceholder.typicode.com/posts')
+        .then(response => response.json())
+        .then(serverQuotes => {
+            // Merge server quotes with local quotes
+            const serverQuoteTexts = serverQuotes.map(quote => quote.title);
+            quotes = quotes.filter(quote => !serverQuoteTexts.includes(quote.text));
+            serverQuotes.forEach(quote => {
+                quotes.push({ text: quote.title, category: 'Server' });
+            });
+            saveQuotes();
+            populateCategoryFilter();
+            filterQuotes();
+            alert('Data synced with server and conflicts resolved.');
+        });
 }
 
 // Load quotes and set up event listeners on page load
@@ -137,4 +158,7 @@ window.onload = function() {
     populateCategoryFilter();
     document.getElementById('newQuote').addEventListener('click', showRandomQuote);
     filterQuotes();
+    
+    // Sync with server periodically
+    setInterval(syncWithServer, 30000); // Sync every 30 seconds
 };
