@@ -1,24 +1,33 @@
 // Array to hold quotes
 let quotes = [];
 
-// Load quotes from local storage
+// Load quotes and last selected filter from local storage
 function loadQuotes() {
     const storedQuotes = localStorage.getItem('quotes');
+    const storedFilter = localStorage.getItem('selectedFilter');
+    
     if (storedQuotes) {
         quotes = JSON.parse(storedQuotes);
     } else {
-        // Default quotes if local storage is empty
         quotes = [
             { text: "The only limit to our realization of tomorrow is our doubts of today.", category: "Motivation" },
             { text: "Life is what happens when you're busy making other plans.", category: "Life" },
             { text: "The purpose of our lives is to be happy.", category: "Happiness" },
         ];
     }
+    
+    if (storedFilter) {
+        document.getElementById('categoryFilter').value = storedFilter;
+    }
 }
 
-// Save quotes to local storage
+// Save quotes and selected filter to local storage
 function saveQuotes() {
     localStorage.setItem('quotes', JSON.stringify(quotes));
+}
+
+function saveSelectedFilter(filter) {
+    localStorage.setItem('selectedFilter', filter);
 }
 
 // Function to display a random quote
@@ -41,9 +50,44 @@ function addQuote() {
         document.getElementById('newQuoteText').value = '';
         document.getElementById('newQuoteCategory').value = '';
         alert('Quote added successfully!');
+        populateCategoryFilter(); // Update category filter
     } else {
         alert('Please enter both the quote text and category.');
     }
+}
+
+// Function to populate the category filter dropdown
+function populateCategoryFilter() {
+    const categories = Array.from(new Set(quotes.map(quote => quote.category)));
+    const categoryFilter = document.getElementById('categoryFilter');
+    
+    categoryFilter.innerHTML = '<option value="all">All Categories</option>';
+    categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categoryFilter.appendChild(option);
+    });
+
+    const selectedFilter = localStorage.getItem('selectedFilter');
+    if (selectedFilter) {
+        categoryFilter.value = selectedFilter;
+    }
+}
+
+// Function to filter quotes based on selected category
+function filterQuotes() {
+    const selectedCategory = document.getElementById('categoryFilter').value;
+    const quoteDisplay = document.getElementById('quoteDisplay');
+    
+    let filteredQuotes = quotes;
+    if (selectedCategory !== 'all') {
+        filteredQuotes = quotes.filter(quote => quote.category === selectedCategory);
+    }
+
+    quoteDisplay.innerHTML = filteredQuotes.map(quote => `<p>${quote.text}</p><p><em>${quote.category}</em></p>`).join('');
+    
+    saveSelectedFilter(selectedCategory);
 }
 
 // Function to create the form for adding new quotes
@@ -80,6 +124,7 @@ function importFromJsonFile(event) {
         const importedQuotes = JSON.parse(event.target.result);
         quotes.push(...importedQuotes);
         saveQuotes();
+        populateCategoryFilter();
         alert('Quotes imported successfully!');
     };
     fileReader.readAsText(event.target.files[0]);
@@ -89,5 +134,7 @@ function importFromJsonFile(event) {
 window.onload = function() {
     loadQuotes();
     createAddQuoteForm();
+    populateCategoryFilter();
     document.getElementById('newQuote').addEventListener('click', showRandomQuote);
+    filterQuotes();
 };
